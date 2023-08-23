@@ -16,10 +16,11 @@ class Pje_Selenium(BaseDriver):
         return self
         
     def start(self, content):
-        self.switch_to_screen("Parts")
-        self.navigate_to_part_screen(content)
+        self.switch_to_screen("SignDocs")
+        self.navigate_to_docs_screen()
+        # self.navigate_to_part_screen(content)
         self.switch_to_screen("Protocol")
-        self.navigate_to_protocol_screen()
+        # self.navigate_to_protocol_screen()
         self.returnMsg(inputs=content)
 
     @BaseDriver.screen_decorator("Parts")
@@ -55,6 +56,14 @@ class Pje_Selenium(BaseDriver):
     @BaseDriver.screen_decorator("Protocol")
     def navigate_to_protocol_screen(self):
         self.find_locator("screenProtocol").click()
+        input()
+
+    @BaseDriver.screen_decorator("SignDocs")
+    def navigate_to_docs_screen(self):
+        self.find_locator("screendocs").click()
+        self.find_locator("btnsign").click()
+        input()
+        return self.switch_to_screen("Protocol")
 
     
     def set_type_part(self, infosPart):
@@ -100,6 +109,8 @@ class Pje_Selenium(BaseDriver):
 
 
     def find_address(self, cep):
+        import time
+        time.sleep(2)
         soup = BeautifulSoup(self.DRIVER.page_source)
         table_address= soup.select_one(
             'tbody[id*="cadastroPartePessoaEndereco"]')
