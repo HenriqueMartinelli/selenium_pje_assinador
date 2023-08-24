@@ -3,9 +3,9 @@ from selenium.webdriver.common.action_chains import ActionChains
 from bs4 import BeautifulSoup
 from init import BaseDriver
 from scheme import SITE_SCHEME
+from login import Login
 
-
-class Pje_Selenium(BaseDriver):
+class Pje_Selenium(BaseDriver, Login):
     def __exit__(self, type, value, traceback):
         pass
         # if self.DRIVER:
@@ -16,6 +16,7 @@ class Pje_Selenium(BaseDriver):
         return self
         
     def start(self, content):
+        self.login(content)
         self.switch_to_screen("SignDocs")
         self.navigate_to_docs_screen()
         # self.navigate_to_part_screen(content)
@@ -25,8 +26,6 @@ class Pje_Selenium(BaseDriver):
 
     @BaseDriver.screen_decorator("Parts")
     def navigate_to_part_screen(self, content):
-        self.global_variables(content)
-        self.DRIVER.get(self.URL_PROCESS)
         self.find_locator("screenPart").click()
         self.add_all_parts(content)
         return self.switch_to_screen("Protocol")
@@ -56,16 +55,14 @@ class Pje_Selenium(BaseDriver):
     @BaseDriver.screen_decorator("Protocol")
     def navigate_to_protocol_screen(self):
         self.find_locator("screenProtocol").click()
-        input()
 
     @BaseDriver.screen_decorator("SignDocs")
     def navigate_to_docs_screen(self):
-        self.find_locator("screendocs").click()
-        self.find_locator("btnsign").click()
-        input()
+        self.find_locator("screenDocs").click()
+        self.find_locator("btnSigner").click()
+        self.wait_signer()
         return self.switch_to_screen("Protocol")
 
-    
     def set_type_part(self, infosPart):
         if infosPart.get("cnpj"):
             return self.find_locator("typeCnpj").click()

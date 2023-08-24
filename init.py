@@ -23,26 +23,30 @@ class BaseDriver:
         # self.chrome_options = Options()
         # self.chrome_options.add_argument('--headless')
         self.chrome_options = chrome_options
-        self.driver_path: str = ChromeDriverManager().install()
+        # self.driver_path: str = ChromeDriverManager().install()
+        self.driver_path = ""
+        self.URL_LOGIN = "https://pje2g.tjba.jus.br/pje/login.seam"
+        self.URL_BASE = "https://pje2g.tjba.jus.br/pje"
 
 
     def setDriver(self, executable_path, chrome_options):
-        self.DRIVER: webdriver = webdriver.Chrome(executable_path=executable_path, chrome_options=chrome_options)
+        import selenium
+        # self.DRIVER: webdriver = webdriver.Chrome(executable_path=executable_path, chrome_options=chrome_options)chrome_options.add_argument('--no-sandbox')
+        self.DRIVER = selenium.webdriver.Chrome(executable_path="C:/chromedriver.exe", options=chrome_options)
         return self.DRIVER
     
     def global_variables(self, content):
         self.ID = content['idTarefa']
         self.URL_PROCESS = content['url_processo']
-        self.cookies = content['cookies']
-        return self.add_cookies_in_session()
+        # return self.add_cookies_in_session()
     
     def add_cookies_in_session(self):
-        self.DRIVER.get("https://pje.tjba.jus.br/pje/login.seam")
+        self.DRIVER.get("https://pje2g.tjba.jus.br/pje/login.seam")
         self.DRIVER.delete_all_cookies()
 
         for key in self.cookies.keys():
             self.DRIVER.add_cookie({'name': key, 'value': self.cookies[key]})
-        self.DRIVER.get("https://pje.tjba.jus.br/pje/Painel/painel_usuario/advogado.seam")
+        self.DRIVER.get("https://pje2g.tjba.jus.br//pje/Painel/painel_usuario/advogado.seam")
         if "/painel_usuario/advogado.seam" in self.DRIVER.current_url:
             return True
         raise ValueError("Faile to validate cookies, in login")
@@ -51,6 +55,7 @@ class BaseDriver:
     def find_element(self, value, by=By.XPATH, retry_count=7, retry_sleep=1) -> WebElement:
         for attempt in range(retry_count):
             try:
+                print(value)
                 return self.DRIVER.find_element(by, value)
             except (NoSuchElementException, TimeoutException):
                 logging.warning(f"ID={self.ID}, {by}={value}: Element not found {attempt + 1}/{retry_count}")
@@ -104,6 +109,18 @@ class BaseDriver:
             return self.find_element_script(locator)
     
         return self.find_element(locator, by=by, retry_count=retry_count, retry_sleep=retry_sleep)
+    
+    def wait_signer(self):
+        attempt = 10
+        while attempt:
+            time.sleep(1)
+            ProgressPje = self.find_element("//*[@id='mpProgressoContainer']", by=By.XPATH, retry_count=3, retry_sleep=1)
+            display = ProgressPje.get_attribute("style")
+            if "display: none;" in display:
+                break
+            attempt -= 1
+        raise ValueError("Pje Office stopped responding")
+
 
     
     def switch_to_screen(self, screen: str):

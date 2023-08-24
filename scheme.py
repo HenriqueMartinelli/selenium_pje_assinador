@@ -50,7 +50,7 @@ SITE_SCHEME = {
         "actions": ["get_pratical_exam_categories", "set_pratical_exam_category", "solve_captcha"],
         "elements": {
             "screenDocs": "//*[@id=\"novoAnexo_lbl\"]",
-            "btnsigner": "//*[@id=\"btn-assinador\"]"
+            "btnSigner": "//*[@id=\"btn-assinador\"]"
         }
     },
 
