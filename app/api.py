@@ -20,7 +20,6 @@ async def create_process(request: Request):
 
     except Exception as error:
         logging.critical(f"ID={idTarefa}: {error}", exc_info=True)
-        client.returnMsg(error=True, msg={"msg":F"Fatal Error: {error}", "error": True})
 
 #   Utils
 ###################################################################

@@ -43,6 +43,8 @@ SITE_SCHEME = {
         "actions": ["get_pratical_exam_categories", "set_pratical_exam_category", "solve_captcha"],
         "elements": {
             "screenProtocol": "//*[@id=\"informativo_lbl\"]",
+            "btnSigner": "//*[@id=\"formBotoesAcao:btnProtocolar\"]"
+
         }
     },
 

@@ -1,6 +1,8 @@
 import time
 import logging
 import traceback
+import ctypes
+import ctypes.wintypes
 
 from datetime import datetime
 from selenium import webdriver
@@ -8,7 +10,6 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import TimeoutException, InvalidElementStateException, ElementClickInterceptedException
 import traceback
 from scheme import SITE_SCHEME
@@ -25,8 +26,7 @@ class BaseDriver:
         self.chrome_options = chrome_options
         # self.driver_path: str = ChromeDriverManager().install()
         self.driver_path = ""
-        self.URL_LOGIN = "https://pje2g.tjba.jus.br/pje/login.seam"
-        self.URL_BASE = "https://pje2g.tjba.jus.br/pje"
+        self.ID = "NOT DEFINED"
 
 
     def setDriver(self, executable_path, chrome_options):
@@ -36,20 +36,16 @@ class BaseDriver:
         return self.DRIVER
     
     def global_variables(self, content):
+        instancia = content['instancia']
+        URL_1 = 'https://pje.tjba.jus.br/pje'
+        URL_2 = 'https://pje2g.tjba.jus.br/pje'
+
+        self.URL_BASE = URL_1 if instancia in (1, '1') else URL_2
+        self.URL_LOGIN = self.URL_BASE + "login.seam"
+
         self.ID = content['idTarefa']
         self.URL_PROCESS = content['url_processo']
-        # return self.add_cookies_in_session()
-    
-    def add_cookies_in_session(self):
-        self.DRIVER.get("https://pje2g.tjba.jus.br/pje/login.seam")
-        self.DRIVER.delete_all_cookies()
-
-        for key in self.cookies.keys():
-            self.DRIVER.add_cookie({'name': key, 'value': self.cookies[key]})
-        self.DRIVER.get("https://pje2g.tjba.jus.br//pje/Painel/painel_usuario/advogado.seam")
-        if "/painel_usuario/advogado.seam" in self.DRIVER.current_url:
-            return True
-        raise ValueError("Faile to validate cookies, in login")
+        self.DRIVER.get(self.URL_PROCESS)
 
 
     def find_element(self, value, by=By.XPATH, retry_count=7, retry_sleep=1) -> WebElement:
@@ -110,16 +106,36 @@ class BaseDriver:
     
         return self.find_element(locator, by=by, retry_count=retry_count, retry_sleep=retry_sleep)
     
-    def wait_signer(self):
-        attempt = 10
+    def wait_signer(self, pathContainer):
+        attempt = 15
         while attempt:
-            time.sleep(1)
-            ProgressPje = self.find_element("//*[@id='mpProgressoContainer']", by=By.XPATH, retry_count=3, retry_sleep=1)
-            display = ProgressPje.get_attribute("style")
-            if "display: none;" in display:
-                break
-            attempt -= 1
-        raise ValueError("Pje Office stopped responding")
+            try:
+                time.sleep(1)
+                ProgressPje = self.find_element(f"//*[@id='{pathContainer}']", by=By.XPATH, retry_count=3, retry_sleep=1)
+                display = ProgressPje.get_attribute("style")
+                if "display: none;" in display:
+                    break
+                self.find_and_click_ok_button("Insira o Pin:")
+                attempt -= 1
+            except NoSuchElementException:
+                return
+        raise ValueError("Pje Office stopped responding or window pje not found")
+
+
+    def find_and_click_ok_button(self, window_title):
+        try:
+            user32 = ctypes.windll.user32
+
+            window_handle = user32.FindWindowW(None, window_title)
+            if window_handle:
+                user32.SetForegroundWindow(window_handle)
+                time.sleep(0.5)  # Espera um pouco para garantir que a janela esteja em foco
+                user32.keybd_event(0x0D, 0, 0, 0)  # Simula pressionamento de Enter
+                user32.keybd_event(0x0D, 0, 2, 0)  # Simula liberação de Enter
+            else:
+                logging.warning("Window not found")
+        except Exception as error:
+            logging.warning(error)
 
 
     
@@ -145,15 +161,18 @@ class BaseDriver:
                 "msg": msg,
                 "created_at": dt_string,
                 "idTarefa": inputs.get("idTarefa"),
+                "url": inputs.get('url_process')
             }
         else:
             event = {
-                "polo_ativo": inputs['polo_ativo'],
-                "polo_passivo": inputs['polo_passivo'],
+                # "polo_ativo": inputs['polo_ativo'],
+                # "polo_passivo": inputs['polo_passivo'],
+                "error": False,
                 "created_at": dt_string,
                 "idTarefa": inputs.get("idTarefa"),
                 "url": inputs.get('url_process'),
             }
+        print(event)
             
         return event
         # requests.request("POST", url=self.URL_WOOK, json=event, timeout=10)

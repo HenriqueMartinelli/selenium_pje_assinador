@@ -1,28 +1,21 @@
 from selenium.webdriver.support.select import Select, By
 from selenium.webdriver.common.action_chains import ActionChains
 from bs4 import BeautifulSoup
-from init import BaseDriver
-from scheme import SITE_SCHEME
-from login import Login
+from src.init import BaseDriver
+from src.schemes.scheme import SITE_SCHEME
+from src.login import Login
+
+import logging
 
 class Pje_Selenium(BaseDriver, Login):
     def __exit__(self, type, value, traceback):
-        pass
-        # if self.DRIVER:
-        #     self.DRIVER.quit()  
+        if self.DRIVER:
+            self.DRIVER.quit()  
         
     def __enter__(self): 
         self.setDriver(self.driver_path, self.chrome_options)
         return self
-        
-    def start(self, content):
-        self.login(content)
-        self.switch_to_screen("SignDocs")
-        self.navigate_to_docs_screen()
-        # self.navigate_to_part_screen(content)
-        self.switch_to_screen("Protocol")
-        # self.navigate_to_protocol_screen()
-        self.returnMsg(inputs=content)
+
 
     @BaseDriver.screen_decorator("Parts")
     def navigate_to_part_screen(self, content):
@@ -55,13 +48,23 @@ class Pje_Selenium(BaseDriver, Login):
     @BaseDriver.screen_decorator("Protocol")
     def navigate_to_protocol_screen(self):
         self.find_locator("screenProtocol").click()
+        self.find_locator("btnSigner").click()
+        self.wait_signer("mpProgressoContainer")
+
 
     @BaseDriver.screen_decorator("SignDocs")
     def navigate_to_docs_screen(self):
         self.find_locator("screenDocs").click()
         self.find_locator("btnSigner").click()
-        self.wait_signer()
+        self.wait_signer("mpProgressoContainer")
+        self.check_docs_signed()
         return self.switch_to_screen("Protocol")
+
+    def check_docs_signed(self):
+        page = self.DRIVER.page_source
+        if "Documento(s) assinado(s) com sucesso." in page:
+            logging.info(f"ID={self.ID}, docs have been signed")
+        raise ValueError("Docs were not signed")
 
     def set_type_part(self, infosPart):
         if infosPart.get("cnpj"):
@@ -134,7 +137,6 @@ class Pje_Selenium(BaseDriver, Login):
         return self.find_locator("saveButton", by=By.CSS_SELECTOR).click()
 
 
-
     def verify_part_in_process(self, infosPart, pole):
         self.switch_to_screen("Parts")
         self.find_locator("waitWindowClose")
@@ -162,7 +164,18 @@ class Pje_Selenium(BaseDriver, Login):
                 "address_registered": contentAddress}
     
 
-
+    def start(self, contents):
+        self.login()
+        for content in contents:
+            try:
+                self.global_variables(content)
+                self.switch_to_screen("Protocol")
+                self.navigate_to_docs_screen()
+                self.navigate_to_protocol_screen()
+                self.returnMsg(inputs=content)
+            except Exception as e:
+                self.returnMsg(inputs=content, error=True, msg=e)
+                logging.warning(f'ID={self.ID}, ERRO EM 1 PROCESSO - ' + str(e))
             
 
 
