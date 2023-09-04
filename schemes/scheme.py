@@ -43,14 +43,15 @@ SITE_SCHEME = {
         "actions": ["get_pratical_exam_categories", "set_pratical_exam_category", "solve_captcha"],
         "elements": {
             "screenProtocol": "//*[@id=\"informativo_lbl\"]",
-            "btnSigner": "//*[@id=\"formBotoesAcao:btnProtocolar\"]"
-
+            "btnSigner": "//*[@id=\"formBotoesAcao:btnProtocolar\"]",
+            "btncomprovante": "//*[@id=\"formBotoesAcao:btnSalvarComprovante\"]"
         }
     },
 
     "SignDocs": {
         "actions": ["get_pratical_exam_categories", "set_pratical_exam_category", "solve_captcha"],
         "elements": {
+            "btncomprovante": "//*[@id=\"formBotoesAcao:btnSalvarComprovante\"]",
             "screenDocs": "//*[@id=\"novoAnexo_lbl\"]",
             "btnSigner": "//*[@id=\"btn-assinador\"]"
         }

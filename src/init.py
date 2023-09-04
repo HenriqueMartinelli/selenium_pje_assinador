@@ -1,8 +1,8 @@
 import time
 import logging
-import traceback
 import ctypes
 import ctypes.wintypes
+import selenium
 
 from datetime import datetime
 from selenium import webdriver
@@ -27,22 +27,15 @@ class BaseDriver:
         # self.driver_path: str = ChromeDriverManager().install()
         self.driver_path = ""
         self.ID = "NOT DEFINED"
+        self.outputEvent = list()
 
 
     def setDriver(self, executable_path, chrome_options):
-        import selenium
         # self.DRIVER: webdriver = webdriver.Chrome(executable_path=executable_path, chrome_options=chrome_options)chrome_options.add_argument('--no-sandbox')
-        self.DRIVER = selenium.webdriver.Chrome(executable_path="C:/chromedriver.exe", options=chrome_options)
+        self.DRIVER = selenium.webdriver.Chrome(options=chrome_options)
         return self.DRIVER
     
     def global_variables(self, content):
-        instancia = content['instancia']
-        URL_1 = 'https://pje.tjba.jus.br/pje'
-        URL_2 = 'https://pje2g.tjba.jus.br/pje'
-
-        self.URL_BASE = URL_1 if instancia in (1, '1') else URL_2
-        self.URL_LOGIN = self.URL_BASE + "login.seam"
-
         self.ID = content['idTarefa']
         self.URL_PROCESS = content['url_processo']
         self.DRIVER.get(self.URL_PROCESS)
@@ -51,7 +44,6 @@ class BaseDriver:
     def find_element(self, value, by=By.XPATH, retry_count=7, retry_sleep=1) -> WebElement:
         for attempt in range(retry_count):
             try:
-                print(value)
                 return self.DRIVER.find_element(by, value)
             except (NoSuchElementException, TimeoutException):
                 logging.warning(f"ID={self.ID}, {by}={value}: Element not found {attempt + 1}/{retry_count}")
@@ -71,25 +63,7 @@ class BaseDriver:
                 logging.warning(f"ID={self.ID}, {by}={value}: Element not found {attempt + 1}/{retry_count}")
                 time.sleep(retry_sleep)
         raise InvalidElementStateException(f"ID={self.ID}, {by}={value}: Element not Interactable") 
-
-    def find_element_script(self, script, retry_count=5, retry_sleep=1) -> WebElement:
-        for attempt in range(retry_count):
-            try:
-                return self.DRIVER.execute_script(script)
-            except (NoSuchElementException, TimeoutException, StaleElementReferenceException):
-                logging.warning(f"ID={self.ID}, {script}: Element not found {attempt + 1}/{retry_count}")
-                time.sleep(retry_sleep)
-        raise NoSuchElementException(f"ID={self.ID}, {script}: Element not found") 
     
-
-    def find_element_by_clickable(self, value, by=By.XPATH, retry_count=7, retry_sleep=1) -> WebElement:
-        for attempt in range(retry_count):
-            try:
-                return self.DRIVER.find_element(by, value).click()
-            except (NoSuchElementException, ElementClickInterceptedException, StaleElementReferenceException):
-                logging.warning(f"ID={self.ID}, {by}={value}: Element not found {attempt + 1}/{retry_count}")
-                time.sleep(retry_sleep)
-        raise NoSuchElementException(f"ID={self.ID}, {by}={value}: Element not found")
     
 
     def find_locator(self, element: str, screen: str = None, retry_count=7, retry_sleep=1, method=None, by=By.XPATH):
@@ -97,24 +71,17 @@ class BaseDriver:
         locator = SITE_SCHEME[screen]["elements"][element]
         if method == 'click':
             return self.find_element_by_clickable(locator, by=by, retry_count=retry_count, retry_sleep=retry_sleep)
-        
-        if method == "send_text":
-            return self.send_keys_if_visible(locator, by=by)
-
-        if method == "script":
-            return self.find_element_script(locator)
-    
         return self.find_element(locator, by=by, retry_count=retry_count, retry_sleep=retry_sleep)
     
     def wait_signer(self, pathContainer):
-        attempt = 15
+        attempt = 200
         while attempt:
             try:
                 time.sleep(1)
                 ProgressPje = self.find_element(f"//*[@id='{pathContainer}']", by=By.XPATH, retry_count=3, retry_sleep=1)
                 display = ProgressPje.get_attribute("style")
                 if "display: none;" in display:
-                    break
+                    return
                 self.find_and_click_ok_button("Insira o Pin:")
                 attempt -= 1
             except NoSuchElementException:
@@ -132,10 +99,8 @@ class BaseDriver:
                 time.sleep(0.5)  # Espera um pouco para garantir que a janela esteja em foco
                 user32.keybd_event(0x0D, 0, 0, 0)  # Simula pressionamento de Enter
                 user32.keybd_event(0x0D, 0, 2, 0)  # Simula liberação de Enter
-            else:
-                logging.warning("Window not found")
         except Exception as error:
-            logging.warning(error)
+            logging.warning(f"ID={self.ID}, {error}")
 
 
     
@@ -145,11 +110,6 @@ class BaseDriver:
         else:
             raise Exception(f"Screen {screen} not found")
         
-    def return_error(self):
-        return {
-            "error": True, "msg": traceback.format_exc(), "screen": self.current_screen
-        }
-
 
     def returnMsg(self, inputs=dict(), error=False, msg=None):
         now = datetime.now()
@@ -161,19 +121,17 @@ class BaseDriver:
                 "msg": msg,
                 "created_at": dt_string,
                 "idTarefa": inputs.get("idTarefa"),
-                "url": inputs.get('url_process')
+                "url": inputs.get('url_processo')
             }
         else:
             event = {
-                # "polo_ativo": inputs['polo_ativo'],
-                # "polo_passivo": inputs['polo_passivo'],
+                "output": self.outputProcess,
                 "error": False,
                 "created_at": dt_string,
                 "idTarefa": inputs.get("idTarefa"),
-                "url": inputs.get('url_process'),
+                "url": inputs.get('url_processo'),
             }
-        print(event)
-            
+        self.outputEvent.append(event)
         return event
         # requests.request("POST", url=self.URL_WOOK, json=event, timeout=10)
 

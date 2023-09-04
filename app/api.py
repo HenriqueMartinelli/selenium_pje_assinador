@@ -5,21 +5,18 @@ import logging
 app = FastAPI()
 
 
-@app.post("/selenium")
+@app.post("/assinador")
 async def create_process(request: Request):
     try:
-        form = await request.json()
-        content = get_content(content=form, required_fields=["cookies", "instancia","idTarefa", 
-                                                             "polo_ativo", "polo_passivo",])
+        content = await request.json()
         idTarefa =  content['idTarefa']
 
         with Pje_Selenium() as client:
-            client.switch_to_screen("Parts")
-            client.navigate_to_part_screen(content=content)
-            client.navigate_to_protocol_screen()
+            client.start(content)
 
-    except Exception as error:
-        logging.critical(f"ID={idTarefa}: {error}", exc_info=True)
+        return client.outputEvent
+    except Exception as e:
+        logging.critical(f"idTarefa={idTarefa}: {e}", exc_info=True) 
 
 #   Utils
 ###################################################################
