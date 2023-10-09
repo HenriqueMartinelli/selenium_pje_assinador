@@ -12,7 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import TimeoutException, InvalidElementStateException, ElementClickInterceptedException
 import traceback
-from scheme import SITE_SCHEME
+from scheme.scheme import SITE_SCHEME
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -69,8 +69,6 @@ class BaseDriver:
     def find_locator(self, element: str, screen: str = None, retry_count=7, retry_sleep=1, method=None, by=By.XPATH):
         screen = screen or self.current_screen
         locator = SITE_SCHEME[screen]["elements"][element]
-        if method == 'click':
-            return self.find_element_by_clickable(locator, by=by, retry_count=retry_count, retry_sleep=retry_sleep)
         return self.find_element(locator, by=by, retry_count=retry_count, retry_sleep=retry_sleep)
     
     def wait_signer(self, pathContainer):
@@ -81,6 +79,7 @@ class BaseDriver:
                 ProgressPje = self.find_element(f"//*[@id='{pathContainer}']", by=By.XPATH, retry_count=3, retry_sleep=1)
                 display = ProgressPje.get_attribute("style")
                 if "display: none;" in display:
+                    time.sleep(1)
                     return
                 self.find_and_click_ok_button("Insira o Pin:")
                 attempt -= 1
